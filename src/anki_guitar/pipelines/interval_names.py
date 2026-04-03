@@ -9,7 +9,7 @@ from anki_guitar.theory.intervals import generate_directed_intervals_excluding_u
 
 
 def _clear_generated_assets(directory: Path) -> None:
-    for path in directory.glob("interval_up_*.png"):
+    for path in directory.glob("interval_down_*.png"):
         path.unlink()
 
 
@@ -21,9 +21,11 @@ def run() -> None:
     interval_assets_dir.mkdir(parents=True, exist_ok=True)
     _clear_generated_assets(interval_assets_dir)
 
-    intervals = generate_directed_intervals_excluding_unison()
-    if len(intervals) != 132:
-        raise RuntimeError(f"Expected 132 interval cards, got {len(intervals)}")
+    intervals = generate_directed_intervals_excluding_unison(
+        directions=("ascending", "descending")
+    )
+    if len(intervals) != 264:
+        raise RuntimeError(f"Expected 264 named interval cards, got {len(intervals)}")
 
     template_path = (
         Path(__file__).resolve().parent.parent
@@ -32,7 +34,10 @@ def run() -> None:
         / "interval_circle.typ"
     )
     renderer = TypstRenderer(template_path=template_path)
-    deck = IntervalDeckBuilder(deck_name=cfg.deck_name)
+    deck = IntervalDeckBuilder(
+        deck_name="Anki Guitar - Interval Names",
+        model_name="Named Interval Recall",
+    )
 
     media_files: list[str] = []
     for item in intervals:
@@ -40,15 +45,16 @@ def run() -> None:
         renderer.render_interval(item=item, output_path=output_path)
         media_files.append(str(output_path))
         deck.add_interval(
-            question=item.prompt,
+            question=item.named_prompt,
             answer=item.answer,
             media_file_name=output_path.name,
         )
 
-    package_path = cfg.dist_dir / "anki-guitar-intervals.apkg"
+    package_path = cfg.dist_dir / "anki-guitar-interval-names.apkg"
     deck.write_package(output_path=package_path, media_files=media_files)
-    print(f"Built deck with {len(intervals)} cards -> {package_path}")
+    print(f"Built named interval deck with {len(intervals)} cards -> {package_path}")
 
 
 if __name__ == "__main__":
     run()
+

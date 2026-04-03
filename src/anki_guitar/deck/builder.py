@@ -10,11 +10,11 @@ from anki_guitar.theory.intervals import IntervalItem
 
 
 class IntervalDeckBuilder:
-    def __init__(self, deck_name: str) -> None:
+    def __init__(self, deck_name: str, model_name: str = "Directed Interval (Image Prompt)") -> None:
         self.deck = genanki.Deck(deck_id=_deck_id(deck_name), name=deck_name)
         self.model = genanki.Model(
             model_id=_model_id(deck_name),
-            name="Directed Interval (Image Prompt)",
+            name=model_name,
             fields=[
                 {"name": "Question"},
                 {"name": "Image"},
@@ -45,13 +45,15 @@ class IntervalDeckBuilder:
             """,
         )
 
-    def add_interval(self, item: IntervalItem, media_file_name: str) -> None:
+    def add_interval(
+        self, question: str, answer: str, media_file_name: str
+    ) -> None:
         note = genanki.Note(
             model=self.model,
             fields=[
-                item.prompt,
+                question,
                 f"<img src='{media_file_name}'>",
-                item.answer,
+                answer,
             ],
         )
         self.deck.add_note(note)

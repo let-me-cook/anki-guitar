@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from anki_guitar.theory.pitch import PitchClass, all_pitch_classes
 
@@ -19,21 +20,27 @@ INTERVAL_NAMES = {
 }
 
 
+IntervalDirection = Literal["ascending", "descending"]
+
+
 @dataclass(frozen=True)
 class IntervalItem:
     source: PitchClass
     target: PitchClass
     semitones: int
+    direction: IntervalDirection = "ascending"
 
     @property
     def media_stem(self) -> str:
-        return f"interval_{self.source.slug}_to_{self.target.slug}"
+        direction_slug = "up" if self.direction == "ascending" else "down"
+        return f"interval_{direction_slug}_{self.source.slug}_to_{self.target.slug}"
 
     @property
     def prompt(self) -> str:
+        direction_text = "above" if self.direction == "ascending" else "below"
         return (
             f"Starting on {self.source.label}, which note is "
-            f"{self.semitones} semitone{'s' if self.semitones != 1 else ''} above?"
+            f"{self.semitones} semitone{'s' if self.semitones != 1 else ''} {direction_text}?"
         )
 
     @property
@@ -41,22 +48,42 @@ class IntervalItem:
         return INTERVAL_NAMES[self.semitones]
 
     @property
+    def named_prompt(self) -> str:
+        direction_text = "above" if self.direction == "ascending" else "below"
+        return (
+            f"Starting on {self.source.label}, which note is "
+            f"a {self.interval_name} {direction_text}?"
+        )
+
+    @property
     def answer(self) -> str:
         suffix = "semitone" if self.semitones == 1 else "semitones"
-        return f"{self.target.label} ({self.interval_name}, {self.semitones} {suffix})"
+        direction_text = "up" if self.direction == "ascending" else "down"
+        return (
+            f"{self.target.label} "
+            f"({self.interval_name} {direction_text}, {self.semitones} {suffix})"
+        )
 
 
-def generate_directed_intervals_excluding_unison() -> list[IntervalItem]:
+def generate_directed_intervals_excluding_unison(
+    directions: tuple[IntervalDirection, ...] = ("ascending",),
+) -> list[IntervalItem]:
     notes = all_pitch_classes()
     items: list[IntervalItem] = []
-    for source in notes:
-        for target in notes:
-            if source.index == target.index:
-                continue
-            semitones = (target.index - source.index) % 12
-            if semitones == 0:
-                continue
-            items.append(
-                IntervalItem(source=source, target=target, semitones=semitones)
-            )
+    for direction in directions:
+        for source in notes:
+            for semitones in range(1, 12):
+                if direction == "ascending":
+                    target_index = (source.index + semitones) % 12
+                else:
+                    target_index = (source.index - semitones) % 12
+                target = notes[target_index]
+                items.append(
+                    IntervalItem(
+                        source=source,
+                        target=target,
+                        semitones=semitones,
+                        direction=direction,
+                    )
+                )
     return items
